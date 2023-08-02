@@ -9,14 +9,13 @@
 #define DEVICE_NAME "encryptor"
 #define CALC_IOC_MAGIC 'c'
 #define CALC_IOC_SUM _IOWR(CALC_IOC_MAGIC, 1, int)
-
-#define CAESAR_KEY 3 // You can change the Caesar key here
+#define CALC_IOC_GET_KEY _IOR(CALC_IOC_MAGIC, 2, int)
 
 static int major_number;
 static char result_str[100];
-static int result = 0; // Define the 'result' variable here
+static int result = 0;
+static int caesar_key = 3; // Default Caesar key
 
-// Function to encrypt/decrypt a single character using the Caesar cipher
 // Function to encrypt/decrypt a single character using the Caesar cipher
 static char caesar_cipher(char ch, int key)
 {
@@ -51,7 +50,7 @@ static ssize_t encryptor_read(struct file *file, char __user *user_buffer, size_
     // Encrypt the result string before sending it to the user
     for (i = 0; i < len; ++i)
     {
-        result_str[i] = caesar_cipher(result_str[i], CAESAR_KEY);
+        result_str[i] = caesar_cipher(result_str[i], caesar_key);
     }
 
     if (copy_to_user(user_buffer, result_str, len) != 0)
@@ -74,7 +73,7 @@ static ssize_t encryptor_write(struct file *file, const char __user *user_buffer
     // Decrypt the input string before storing it as the result
     for (i = 0; i < count; ++i)
     {
-        input_str[i] = caesar_cipher(input_str[i], -CAESAR_KEY);
+        input_str[i] = caesar_cipher(input_str[i], -caesar_key);
     }
 
     input_str[count] = '\0';
@@ -83,6 +82,7 @@ static ssize_t encryptor_write(struct file *file, const char __user *user_buffer
     return count;
 }
 
+
 static long encryptor_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     int input;
@@ -90,23 +90,24 @@ static long encryptor_ioctl(struct file *file, unsigned int cmd, unsigned long a
     if (_IOC_TYPE(cmd) != CALC_IOC_MAGIC)
         return -ENOTTY;
 
-    if (_IOC_NR(cmd) > 1)
+    if (_IOC_NR(cmd) > 2) // Update the check for the correct command number
         return -ENOTTY;
 
-    if (copy_from_user(&input, (int *)arg, sizeof(int)) != 0)
-        return -EFAULT;
+    if (cmd == CALC_IOC_GET_KEY) {
+        if (copy_to_user((int *)arg, &caesar_key, sizeof(int)) != 0)
+            return -EFAULT;
+    } else if (cmd == CALC_IOC_SUM) {
+        if (copy_from_user(&input, (int *)arg, sizeof(int)) != 0)
+            return -EFAULT;
 
-    switch (cmd)
-    {
-    case CALC_IOC_SUM:
         result += input;
-        break;
-    default:
+    } else {
         return -ENOTTY;
     }
 
     return 0;
 }
+
 
 static struct file_operations encryptor_fops = {
     .open = encryptor_open,
@@ -126,6 +127,9 @@ static int __init encryptor_init(void)
     }
 
     printk(KERN_INFO "Encryptor device driver loaded with major number %d\n", major_number);
+
+    printk(KERN_INFO "Caesar key set to: %d\n", caesar_key);
+
     return 0;
 }
 
@@ -141,3 +145,7 @@ module_exit(encryptor_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Christian Mcglothen");
 MODULE_DESCRIPTION("Encryptor Device Driver");
+
+// Set Caesar key as a kernel parameter
+module_param(caesar_key, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(caesar_key, "Caesar key for encryption/decryption");

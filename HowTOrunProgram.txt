@@ -1,0 +1,14 @@
+in the Module Folder (Module/)
+1. make 
+2. sudo insmod encryptor.ko caesar_key=5 //change value to your desire
+   or just sudo insmod encryptor.ko then, sudo sh -c 'echo 10 > /sys/module/encryptor/parameters/caesar_key'
+
+3. dmesg (will give you the major number) ex:  Encryptor device driver loaded with major number 236
+4. sudo mknod /dev/encryptor c <major number> 0 // replace number // that is a zero //example sudo mknod /dev/encryptor c 236 0
+5. sudo chmod 666 /dev/encryptor 
+
+
+6. cd into Test Folder (Test/)
+
+7. make run
+

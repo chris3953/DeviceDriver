@@ -22,6 +22,8 @@ static char caesar_cipher(char ch, int key) {
     return ch;
 }
 
+/// @brief 
+/// @return 
 int main() {
     int fd;
     int ret, data;
@@ -45,6 +47,8 @@ int main() {
         return -1;
     }
 
+
+    printf("You have set the key to %d\n", caesar_key); 
     int choice;
     printf("Choose an option:\n");
     printf("1. Encrypt a message\n");
@@ -59,7 +63,7 @@ int main() {
 
         // Encrypt the message using the Caesar cipher
         for (int i = 0; i < strlen(buffer); ++i) {
-            result[i] = caesar_cipher(buffer[i], caesar_key);
+            result[i] = buffer[i]; 
         }
         result[strlen(buffer)] = '\0';
 
@@ -70,6 +74,9 @@ int main() {
             close(fd);
             return -1;
         }
+
+         //read back to user
+         ret = read(fd, result, strlen(result));
 
         printf("Encrypted message: %s\n", result);
     } else if (choice == 2) {
@@ -88,6 +95,8 @@ int main() {
         printf("Invalid choice\n");
     }
 
+  
+    
     // Close the device file
     close(fd);
 

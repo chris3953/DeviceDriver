@@ -45,13 +45,9 @@ static int encryptor_release(struct inode *inode, struct file *file)
 static ssize_t encryptor_read(struct file *file, char __user *user_buffer, size_t count, loff_t *offset)
 {
     int len = strlen(result_str);
-    int i;
 
-    // Encrypt the result string before sending it to the user
-    for (i = 0; i < len; ++i)
-    {
-        result_str[i] = caesar_cipher(result_str[i], caesar_key);
-    }
+    if (len > count)
+        len = count;
 
     if (copy_to_user(user_buffer, result_str, len) != 0)
         return -EFAULT;
@@ -73,15 +69,15 @@ static ssize_t encryptor_write(struct file *file, const char __user *user_buffer
     // Decrypt the input string before storing it as the result
     for (i = 0; i < count; ++i)
     {
-        input_str[i] = caesar_cipher(input_str[i], -caesar_key);
+        input_str[i] = caesar_cipher(input_str[i], caesar_key);
     }
 
     input_str[count] = '\0';
     snprintf(result_str, sizeof(result_str), "%s", input_str);
-
+    
+    printk(KERN_INFO "Received input: %s\n", input_str); // Print the received input
     return count;
 }
-
 
 static long encryptor_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -93,21 +89,25 @@ static long encryptor_ioctl(struct file *file, unsigned int cmd, unsigned long a
     if (_IOC_NR(cmd) > 2) // Update the check for the correct command number
         return -ENOTTY;
 
-    if (cmd == CALC_IOC_GET_KEY) {
+    if (cmd == CALC_IOC_GET_KEY)
+    {
         if (copy_to_user((int *)arg, &caesar_key, sizeof(int)) != 0)
             return -EFAULT;
-    } else if (cmd == CALC_IOC_SUM) {
+    }
+    else if (cmd == CALC_IOC_SUM)
+    {
         if (copy_from_user(&input, (int *)arg, sizeof(int)) != 0)
             return -EFAULT;
 
         result += input;
-    } else {
+    }
+    else
+    {
         return -ENOTTY;
     }
 
     return 0;
 }
-
 
 static struct file_operations encryptor_fops = {
     .open = encryptor_open,

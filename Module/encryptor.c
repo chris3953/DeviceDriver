@@ -11,6 +11,7 @@
 #define CALC_IOC_SUM _IOWR(CALC_IOC_MAGIC, 1, int)
 #define CALC_IOC_GET_KEY _IOR(CALC_IOC_MAGIC, 2, int)
 
+
 static int major_number;
 static char result_str[100];
 static int result = 0;

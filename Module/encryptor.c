@@ -7,14 +7,13 @@
 #include <linux/ioctl.h>
 
 #define DEVICE_NAME "encryptor"
-#define CALC_IOC_MAGIC 'c'
-#define CALC_IOC_SUM _IOWR(CALC_IOC_MAGIC, 1, int)
-#define CALC_IOC_GET_KEY _IOR(CALC_IOC_MAGIC, 2, int)
-
+#define ENCRYPTOR_IOC_MAGIC 'e'
+#define GET_KEY _IOR(ENCRYPTOR_IOC_MAGIC, 1, int)
+#define SET_NEGATIVE_KEY _IOW(ENCRYPTOR_IOC_MAGIC, 2, int)
+#define RESET_KEY _IOW(ENCRYPTOR_IOC_MAGIC, 3, int)
 
 static int major_number;
 static char result_str[100];
-static int result = 0;
 static int caesar_key = 3; // Default Caesar key
 
 // Function to encrypt/decrypt a single character using the Caesar cipher
@@ -75,32 +74,37 @@ static ssize_t encryptor_write(struct file *file, const char __user *user_buffer
 
     input_str[count] = '\0';
     snprintf(result_str, sizeof(result_str), "%s", input_str);
-    
+
     printk(KERN_INFO "Received input: %s\n", input_str); // Print the received input
     return count;
 }
 
 static long encryptor_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
+  
     int input;
 
-    if (_IOC_TYPE(cmd) != CALC_IOC_MAGIC)
-        return -ENOTTY;
-
-    if (_IOC_NR(cmd) > 2) // Update the check for the correct command number
-        return -ENOTTY;
-
-    if (cmd == CALC_IOC_GET_KEY)
+    if (cmd == GET_KEY)
     {
         if (copy_to_user((int *)arg, &caesar_key, sizeof(int)) != 0)
             return -EFAULT;
     }
-    else if (cmd == CALC_IOC_SUM)
+    else if (cmd == SET_NEGATIVE_KEY)
     {
         if (copy_from_user(&input, (int *)arg, sizeof(int)) != 0)
             return -EFAULT;
-
-        result += input;
+        
+        // Set the Caesar key to the negative value
+        caesar_key = -input;
+        printk(KERN_INFO "Caesar key set to: %d\n", caesar_key);
+    }else if (cmd == RESET_KEY)
+    {
+        if (copy_from_user(&input, (int *)arg, sizeof(int)) != 0)
+            return -EFAULT;
+        
+        // Set the Caesar key to the negative value
+        caesar_key = input;
+        printk(KERN_INFO "Caesar key set to: %d\n", caesar_key);
     }
     else
     {
